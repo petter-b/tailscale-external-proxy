@@ -1,0 +1,55 @@
+# ===================================================================
+# Helm Chart Artifacts & Dependencies
+# ===================================================================
+# Ignore packaged chart files. These are release artifacts, not source code.
+# The 'helm package' command creates these.
+*.tgz
+
+# Ignore chart dependency directories.
+# The 'helm dependency update' command downloads charts into this sub-directory.
+# The 'Chart.yaml' and 'Chart.lock' files define the dependencies, which is all
+# that should be in source control.
+**/charts/
+
+
+# ===================================================================
+# Local Configuration & Secrets
+# ===================================================================
+# Ignore any local values files that may contain secrets or user-specific overrides.
+# This is a common pattern to avoid committing sensitive data.
+values.local.yaml
+*.local.yaml
+secrets.yaml
+debug.yaml
+
+# Ignore environment variable files, but keep examples.
+.env
+.env.*
+!/.env.example
+
+
+# ===================================================================
+# Common IDE/Editor and OS Files
+# ===================================================================
+# General
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE - Visual Studio Code
+.vscode/
+
+# IDE - JetBrains (IntelliJ, GoLand, etc.)
+.idea/
+
+# IDE - Vim
+*.swp
+*.swo
+
+# =/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=
+# Optional - Common build output directories
+# =/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=/=
+# In case you add other tooling (e.g., for testing or documentation)
+/build/
+/dist/
+/vendor/
