@@ -9,7 +9,7 @@
 # The 'helm dependency update' command downloads charts into this sub-directory.
 # The 'Chart.yaml' and 'Chart.lock' files define the dependencies, which is all
 # that should be in source control.
-#**/charts/
+/charts/
 
 
 # ===================================================================
