@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ts-ext-proxy
+  namespace: ts-ext-proxy
+spec:
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - svc
+  rules:
+  - host: svc
+    http:
+      paths:
+      - backend:
+          service:
+            name: ts-ext-proxy
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ts-ext-proxy
+  namespace: ts-ext-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ts-ext-proxy
+  template:
+    metadata:
+      labels:
+        app: ts-ext-proxy
+    spec:
+      containers:
+      - name: caddy
+        image: caddy:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: caddy-config-volume
+          mountPath: /etc/caddy/Caddyfile
+          subPath: Caddyfile
+      volumes:
+      - name: caddy-config-volume
+        configMap:
+          name: cm-pfproxy-caddyfile

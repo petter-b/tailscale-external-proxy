@@ -1,0 +1,11 @@
+# Listen on port 80 for plain HTTP traffic.
+:80 {
+    # Forward all requests to the pfSense router.
+    reverse_proxy https://192.168.0.1:443 {
+        header_up Host "svc.local.lan"
+        header_up Referer "https://svc.local.lan"
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}
