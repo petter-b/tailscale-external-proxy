@@ -1,6 +1,18 @@
 {
   "name": "helm-environment",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "customizations": {
+    "codespaces": {
+      "repositories": {
+        "petter-b/homelab": {
+          "permissions": {
+            "contents": "read"
+          }
+        }
+      }
+    }
+  }
   
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
