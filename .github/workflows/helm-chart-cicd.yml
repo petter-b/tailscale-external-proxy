@@ -37,19 +37,19 @@ jobs:
 
       - name: Validate chart structure
         run: |
-          if [[ ! -f "./chart/Chart.yaml" ]]; then
-            echo "Error: Chart.yaml not found at ./chart/Chart.yaml"
+          if [[ ! -f "./Chart.yaml" ]]; then
+            echo "Error: Chart.yaml not found at ./Chart.yaml"
             exit 1
           fi
           
-          if [[ ! -d "./chart/templates" ]]; then
+          if [[ ! -d "./templates" ]]; then
             echo "Error: templates directory not found"
             exit 1
           fi
 
       - name: Validate Chart.yaml version format
         run: |
-          VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          VERSION=$(yq e '.version' ./Chart.yaml)
           if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' > /dev/null; then
             echo "Error: Invalid version format in Chart.yaml: $VERSION"
             echo "Expected format: MAJOR.MINOR.PATCH (e.g., 1.0.0)"
@@ -139,13 +139,13 @@ jobs:
           fi
           
           # Check if Chart.yaml exists and has valid version
-          if [[ ! -f "./chart/Chart.yaml" ]]; then
+          if [[ ! -f "./Chart.yaml" ]]; then
             echo "Error: Chart.yaml not found"
             exit 1
           fi
           
           # Validate current version format
-          CURRENT_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          CURRENT_VERSION=$(yq e '.version' ./Chart.yaml)
           if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Invalid version format in Chart.yaml: $CURRENT_VERSION"
             exit 1
@@ -163,7 +163,7 @@ jobs:
         if: steps.release_type.outputs.release_type == 'release-candidate'
         run: |
           # Get the base version from Chart.yaml
-          CHART_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' ./Chart.yaml)
           
           # Create a pre-release version, e.g., 1.2.3-rc.45
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -200,7 +200,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Get current version
-          CURRENT_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          CURRENT_VERSION=$(yq e '.version' ./Chart.yaml)
           
           # Handle first release case - check if any version tags exist
           LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || echo "")
@@ -225,7 +225,7 @@ jobs:
           echo "Version: ${CURRENT_VERSION} → ${NEW_VERSION}"
           
           # Update Chart.yaml with the new version
-          yq e -i ".version = \"$NEW_VERSION\"" ./chart/Chart.yaml
+          yq e -i ".version = \"$NEW_VERSION\"" ./Chart.yaml
           
           # Run final validation with new version
           helm lint ./chart
@@ -233,7 +233,7 @@ jobs:
           
           # Commit the version bump (only if this is a PR)
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git add ./chart/Chart.yaml
+            git add ./Chart.yaml
             git commit -m "chore: Release version ${NEW_VERSION}"
             
             # Merge the PR (requires admin rights on the repo for the action)
@@ -264,7 +264,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NEW_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          NEW_VERSION=$(yq e '.version' ./Chart.yaml)
           
           # Create GitHub release
           gh release create "v${NEW_VERSION}" \
@@ -283,7 +283,7 @@ jobs:
             echo "- **Version**: \`${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
             echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
           else
-            NEW_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+            NEW_VERSION=$(yq e '.version' ./Chart.yaml)
             echo "- **Type**: Production Release" >> $GITHUB_STEP_SUMMARY
             echo "- **Version**: \`${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
             echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
