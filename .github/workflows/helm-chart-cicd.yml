@@ -1,0 +1,294 @@
+name: Helm Chart CI/CD
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]  # Test on every PR change + releases on label
+  workflow_dispatch: # Allows manual runs
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+        - none
+        - release-candidate
+        - release-patch
+        - release-minor
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Run tests on ALL PRs and manual dispatches
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Setup kubectl (for validation)
+        uses: azure/setup-kubectl@v3
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4.44.1
+
+      - name: Validate chart structure
+        run: |
+          if [[ ! -f "./chart/Chart.yaml" ]]; then
+            echo "Error: Chart.yaml not found at ./chart/Chart.yaml"
+            exit 1
+          fi
+          
+          if [[ ! -d "./chart/templates" ]]; then
+            echo "Error: templates directory not found"
+            exit 1
+          fi
+
+      - name: Validate Chart.yaml version format
+        run: |
+          VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' > /dev/null; then
+            echo "Error: Invalid version format in Chart.yaml: $VERSION"
+            echo "Expected format: MAJOR.MINOR.PATCH (e.g., 1.0.0)"
+            exit 1
+          fi
+          echo "Chart version: $VERSION"
+
+      - name: Helm lint
+        run: |
+          echo "Running helm lint..."
+          helm lint ./chart
+
+      - name: Helm template dry-run
+        run: |
+          echo "Running helm template..."
+          helm template test ./chart --debug
+
+      - name: Validate against Kubernetes schemas
+        run: |
+          echo "Validating Kubernetes manifests..."
+          helm template test ./chart | kubectl apply --dry-run=client -f -
+
+      - name: Test chart packaging
+        run: |
+          echo "Testing chart packaging..."
+          helm package ./chart --destination /tmp
+          echo "Package created successfully"
+
+      - name: Security scan (optional)
+        run: |
+          # You can add tools like trivy, kubesec, etc. here
+          echo "Chart validation completed successfully"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: test  # Only run release if tests pass
+    # This job only runs if one of the release labels is applied OR manual dispatch with release type
+    if: |
+      contains(github.event.label.name, 'release-candidate') ||
+      contains(github.event.label.name, 'release-patch') ||
+      contains(github.event.label.name, 'release-minor') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.release_type != 'none')
+
+    # Grant permissions for pushing to GHCR and committing to the Flux repo
+    permissions:
+      contents: write # To commit version bumps and create tags
+      packages: write # To push to GHCR (OCI)
+      pull-requests: write # To merge PRs
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history to get previous tags for versioning
+          fetch-depth: 0
+          # Use a token that has write permissions for the commit step
+          token: ${{ secrets.PAT_TOKEN }} # A Personal Access Token is needed to trigger subsequent workflows
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Setup Node.js (for semver)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Setup yq
+        uses: mikefarah/yq@v4.44.1
+
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          else
+            RELEASE_TYPE="${{ github.event.label.name }}"
+          fi
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "Detected release type: $RELEASE_TYPE"
+
+      - name: Validate before release
+        run: |
+          # Validate semver command availability
+          if ! command -v npx &> /dev/null; then
+            echo "Error: npx command not found"
+            exit 1
+          fi
+          
+          # Check if Chart.yaml exists and has valid version
+          if [[ ! -f "./chart/Chart.yaml" ]]; then
+            echo "Error: Chart.yaml not found"
+            exit 1
+          fi
+          
+          # Validate current version format
+          CURRENT_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format in Chart.yaml: $CURRENT_VERSION"
+            exit 1
+          fi
+          
+          echo "Validation passed. Current version: $CURRENT_VERSION"
+
+      - name: Login to GitHub Container Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # =================================================================
+      # == Release Candidate Logic
+      # =================================================================
+      - name: Build and Push Release Candidate
+        if: steps.release_type.outputs.release_type == 'release-candidate'
+        run: |
+          # Get the base version from Chart.yaml
+          CHART_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          
+          # Create a pre-release version, e.g., 1.2.3-rc.45
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # For manual dispatch, use timestamp
+            TIMESTAMP=$(date +%s)
+            RC_VERSION="${CHART_VERSION}-rc.${TIMESTAMP}"
+          else
+            # For PR labels, use PR number
+            PR_NUMBER=${{ github.event.pull_request.number }}
+            RC_VERSION="${CHART_VERSION}-rc.${PR_NUMBER}"
+          fi
+          
+          echo "Building Release Candidate version: ${RC_VERSION}"
+          
+          # Run final validation
+          helm lint ./chart
+          helm template test ./chart --debug > /dev/null
+          
+          # Package and push the chart with the RC version
+          helm package ./chart --version "${RC_VERSION}"
+          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
+          
+          echo "✅ Release candidate ${RC_VERSION} published successfully"
+          echo "rc_version=${RC_VERSION}" >> $GITHUB_OUTPUT
+
+      # =================================================================
+      # == Production Release Logic
+      # =================================================================
+      - name: Build and Push Production Release
+        if: steps.release_type.outputs.release_type == 'release-patch' || steps.release_type.outputs.release_type == 'release-minor'
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Get current version
+          CURRENT_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          
+          # Handle first release case - check if any version tags exist
+          LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || echo "")
+          
+          if [[ -z "$LATEST_TAG" ]] || [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
+            echo "🎉 First release detected"
+            if [[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]]; then
+              NEW_VERSION="0.1.0"
+            else
+              NEW_VERSION="0.0.1"
+            fi
+          else
+            # Normal semver bump
+            echo "📈 Bumping existing version: $CURRENT_VERSION"
+            if [[ "${{ steps.release_type.outputs.release_type }}" == "release-patch" ]]; then
+              NEW_VERSION=$(npx semver -i patch $CURRENT_VERSION)
+            elif [[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]]; then
+              NEW_VERSION=$(npx semver -i minor $CURRENT_VERSION)
+            fi
+          fi
+          
+          echo "Version: ${CURRENT_VERSION} → ${NEW_VERSION}"
+          
+          # Update Chart.yaml with the new version
+          yq e -i ".version = \"$NEW_VERSION\"" ./chart/Chart.yaml
+          
+          # Run final validation with new version
+          helm lint ./chart
+          helm template test ./chart --debug > /dev/null
+          
+          # Commit the version bump (only if this is a PR)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git add ./chart/Chart.yaml
+            git commit -m "chore: Release version ${NEW_VERSION}"
+            
+            # Merge the PR (requires admin rights on the repo for the action)
+            gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
+            
+            # Push the commit and tag
+            git push origin main
+          fi
+          
+          # Create and push tag
+          git tag "v${NEW_VERSION}"
+          git push origin "v${NEW_VERSION}"
+          
+          # Package and push the chart
+          helm package ./chart
+          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
+          
+          echo "🚀 Production release ${NEW_VERSION} published successfully"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # =================================================================
+      # == Post-release notifications and updates
+      # =================================================================
+      - name: Create release notes
+        if: steps.release_type.outputs.release_type == 'release-patch' || steps.release_type.outputs.release_type == 'release-minor'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+          
+          # Create GitHub release
+          gh release create "v${NEW_VERSION}" \
+            --title "Release v${NEW_VERSION}" \
+            --notes "Automated release of Helm chart version ${NEW_VERSION}" \
+            --latest
+
+      - name: Summary
+        run: |
+          echo "## 🎯 Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ steps.release_type.outputs.release_type }}" == "release-candidate" ]]; then
+            RC_VERSION="${{ steps.build_rc.outputs.rc_version }}"
+            echo "- **Type**: Release Candidate" >> $GITHUB_STEP_SUMMARY
+            echo "- **Version**: \`${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          else
+            NEW_VERSION=$(yq e '.version' ./chart/Chart.yaml)
+            echo "- **Type**: Production Release" >> $GITHUB_STEP_SUMMARY
+            echo "- **Version**: \`${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Tag**: \`v${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All tests passed and release completed successfully!" >> $GITHUB_STEP_SUMMARY
