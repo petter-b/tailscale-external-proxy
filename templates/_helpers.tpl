@@ -1,4 +1,11 @@
 {{/*
+Define a constant for the starting port.
+*/}}
+{{- define "tailscale-external-proxy.startPort" -}}
+8080
+{{- end -}}
+
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "tailscale-external-proxy.name" -}}
@@ -48,15 +55,4 @@ Selector labels
 {{- define "tailscale-external-proxy.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "tailscale-external-proxy.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "tailscale-external-proxy.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "tailscale-external-proxy.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
 {{- end }}

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-caddyfile
+data:
+  Caddyfile: |
+    {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
+    {{- range $index, $proxy := .Values.proxies }}
+    {{- $currentPort := add $startPort $index }}
+    # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
+    :{{ $currentPort }} {
+        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
+            header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
+            header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
+            {{- if $proxy.insecureSkipVerify }}
+            transport http {
+                tls_insecure_skip_verify
+            }
+            {{- end }}
+        }
+    }
+    {{- end }}

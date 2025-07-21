@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tailscale-external-proxy.fullname" . }}
+  labels:
+    {{- include "tailscale-external-proxy.labels" . | nindent 4 }}
+spec:
+  ports:
+    {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
+    {{- range $index, $proxy := .Values.proxies }}
+    {{- $currentPort := add $startPort $index }}
+    - port: {{ $currentPort }}
+      targetPort: {{ $currentPort }}
+      protocol: TCP
+      name: {{ $proxy.hostName }}
+    {{- end }}
+  selector:
+    {{- include "tailscale-external-proxy.selectorLabels" . | nindent 4 }}
