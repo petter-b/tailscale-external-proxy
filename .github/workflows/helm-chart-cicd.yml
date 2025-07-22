@@ -60,28 +60,23 @@ jobs:
       - name: Helm lint
         run: |
           echo "Running helm lint..."
-          helm lint ./chart
+          helm lint .
 
       - name: Helm template dry-run
         run: |
           echo "Running helm template..."
-          helm template test ./chart --debug
+          helm template test . --debug
 
       - name: Validate against Kubernetes schemas
         run: |
           echo "Validating Kubernetes manifests..."
-          helm template test ./chart | kubectl apply --dry-run=client -f -
+          helm template test . | kubectl apply --dry-run=client -f -
 
       - name: Test chart packaging
         run: |
           echo "Testing chart packaging..."
-          helm package ./chart --destination /tmp
+          helm package . --destination /tmp
           echo "Package created successfully"
-
-      - name: Security scan (optional)
-        run: |
-          # You can add tools like trivy, kubesec, etc. here
-          echo "Chart validation completed successfully"
 
   release:
     runs-on: ubuntu-latest
@@ -179,11 +174,11 @@ jobs:
           echo "Building Release Candidate version: ${RC_VERSION}"
           
           # Run final validation
-          helm lint ./chart
-          helm template test ./chart --debug > /dev/null
+          helm lint .
+          helm template test . --debug > /dev/null
           
           # Package and push the chart with the RC version
-          helm package ./chart --version "${RC_VERSION}"
+          helm package . --version "${RC_VERSION}"
           helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
           
           echo "✅ Release candidate ${RC_VERSION} published successfully"
@@ -228,8 +223,8 @@ jobs:
           yq e -i ".version = \"$NEW_VERSION\"" ./Chart.yaml
           
           # Run final validation with new version
-          helm lint ./chart
-          helm template test ./chart --debug > /dev/null
+          helm lint .
+          helm template test . --debug > /dev/null
           
           # Commit the version bump (only if this is a PR)
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -248,7 +243,7 @@ jobs:
           git push origin "v${NEW_VERSION}"
           
           # Package and push the chart
-          helm package ./chart
+          helm package .
           helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
           
           echo "🚀 Production release ${NEW_VERSION} published successfully"
