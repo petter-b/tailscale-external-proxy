@@ -26,6 +26,9 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
             {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
             {{- range $index, $proxy := .Values.proxies }}
             {{- $currentPort := add $startPort $index }}

@@ -4,6 +4,10 @@ metadata:
   name: {{ .Release.Name }}-caddyfile
 data:
   Caddyfile: |
+    # Health check endpoint
+    :80/healthz {
+      respond "OK" 200
+    }
     {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
     {{- range $index, $proxy := .Values.proxies }}
     {{- $currentPort := add $startPort $index }}
