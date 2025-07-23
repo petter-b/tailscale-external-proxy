@@ -24,6 +24,5 @@ spec:
               service:
                 name:  {{ include "tailscale-external-proxy.fullname" $ }}
                 port:
-                  name: {{ $proxy.hostName }}
                   number: {{ $currentPort }}
     {{- end }}
