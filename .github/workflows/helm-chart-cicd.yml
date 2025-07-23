@@ -296,12 +296,12 @@ jobs:
             RC_VERSION="${{ steps.build_rc.outputs.rc_version }}"
             echo "- **Type**: Release Candidate" >> $GITHUB_STEP_SUMMARY
             echo "- **Version**: \`${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/charts/tailscale-external-proxy:${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
           else
             NEW_VERSION=$(yq e '.version' ./Chart.yaml)
             echo "- **Type**: Production Release" >> $GITHUB_STEP_SUMMARY
             echo "- **Version**: \`${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/charts/tailscale-external-proxy:${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
             echo "- **Tag**: \`v${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
           fi
           
