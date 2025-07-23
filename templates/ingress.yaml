@@ -22,7 +22,7 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: {{ $proxy.hostName }}
+                name:  {{ include "tailscale-external-proxy.fullname" $ }}
                 port:
                   number: {{ $currentPort }}
     {{- end }}
