@@ -35,6 +35,12 @@ jobs:
       - name: Setup yq
         uses: mikefarah/yq@v4.44.1
 
+      - name: Setup kubeconform
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin
+          kubeconform -v
+
       - name: Validate chart structure
         run: |
           if [[ ! -f "./Chart.yaml" ]]; then
@@ -70,7 +76,7 @@ jobs:
       - name: Validate against Kubernetes schemas
         run: |
           echo "Validating Kubernetes manifests..."
-          helm template test . | kubectl apply --dry-run=client -f -
+          helm template test . | kubeconform -strict -summary
 
       - name: Test chart packaging
         run: |
@@ -114,6 +120,12 @@ jobs:
       - name: Setup yq
         uses: mikefarah/yq@v4.44.1
 
+      - name: Setup kubeconform
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin
+          kubeconform -v
+
       - name: Determine release type
         id: release_type
         run: |
@@ -149,7 +161,7 @@ jobs:
           echo "Validation passed. Current version: $CURRENT_VERSION"
 
       - name: Login to GitHub Container Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo ${{ github.token }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
 
       # =================================================================
       # == Release Candidate Logic
@@ -177,9 +189,13 @@ jobs:
           helm lint .
           helm template test . --debug > /dev/null
           
+          # Validate Kubernetes manifests
+          echo "Validating Kubernetes manifests with kubeconform..."
+          helm template test . | kubeconform -strict -summary
+          
           # Package and push the chart with the RC version
           helm package . --version "${RC_VERSION}"
-          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
+          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/charts/
           
           echo "✅ Release candidate ${RC_VERSION} published successfully"
           echo "rc_version=${RC_VERSION}" >> $GITHUB_OUTPUT
@@ -226,6 +242,10 @@ jobs:
           helm lint .
           helm template test . --debug > /dev/null
           
+          # Validate Kubernetes manifests
+          echo "Validating Kubernetes manifests with kubeconform..."
+          helm template test . | kubeconform -strict -summary
+          
           # Commit the version bump (only if this is a PR)
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             git add ./Chart.yaml
@@ -244,7 +264,7 @@ jobs:
           
           # Package and push the chart
           helm package .
-          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
+          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/charts/
           
           echo "🚀 Production release ${NEW_VERSION} published successfully"
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
@@ -276,12 +296,12 @@ jobs:
             RC_VERSION="${{ steps.build_rc.outputs.rc_version }}"
             echo "- **Type**: Release Candidate" >> $GITHUB_STEP_SUMMARY
             echo "- **Version**: \`${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/charts/tailscale-external-proxy:${RC_VERSION}\`" >> $GITHUB_STEP_SUMMARY
           else
             NEW_VERSION=$(yq e '.version' ./Chart.yaml)
             echo "- **Type**: Production Release" >> $GITHUB_STEP_SUMMARY
             echo "- **Version**: \`${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/tailscale-external-proxy:${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Registry**: \`ghcr.io/${{ github.repository_owner }}/charts/tailscale-external-proxy:${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
             echo "- **Tag**: \`v${NEW_VERSION}\`" >> $GITHUB_STEP_SUMMARY
           fi
           
