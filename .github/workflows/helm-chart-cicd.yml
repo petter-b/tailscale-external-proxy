@@ -195,7 +195,7 @@ jobs:
           
           # Package and push the chart with the RC version
           helm package . --version "${RC_VERSION}"
-          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
+          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/charts/
           
           echo "✅ Release candidate ${RC_VERSION} published successfully"
           echo "rc_version=${RC_VERSION}" >> $GITHUB_OUTPUT
@@ -264,7 +264,7 @@ jobs:
           
           # Package and push the chart
           helm package .
-          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/
+          helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/charts/
           
           echo "🚀 Production release ${NEW_VERSION} published successfully"
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
