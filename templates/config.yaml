@@ -9,6 +9,9 @@ data:
         handle /healthz {
             respond "OK" 200
         }
+        handle {
+            respond "Not found" 404
+        }
     }
     {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
     {{- range $index, $proxy := .Values.proxies }}
