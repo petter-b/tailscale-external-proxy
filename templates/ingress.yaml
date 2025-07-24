@@ -1,20 +1,19 @@
+{{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
+{{- range $index, $proxy := .Values.proxies }}
+{{- $currentPort := add $startPort $index }}
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "tailscale-external-proxy.fullname" . }}
+  name: {{ include "tailscale-external-proxy.fullname" $ }}-{{ $proxy.hostName }}
   labels:
-    {{- include "tailscale-external-proxy.labels" . | nindent 4 }}
+    {{- include "tailscale-external-proxy.labels" $ | nindent 4 }}
 spec:
   ingressClassName: tailscale
   tls:
     - hosts:
-        {{- range $proxy := .Values.proxies }}
         - {{ $proxy.hostName }}
-        {{- end }}
   rules:
-    {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
-    {{- range $index, $proxy := .Values.proxies }}
-    {{- $currentPort := add $startPort $index }}
     - host: {{ $proxy.hostName }}
       http:
         paths:
@@ -25,4 +24,4 @@ spec:
                 name:  {{ include "tailscale-external-proxy.fullname" $ }}
                 port:
                   number: {{ $currentPort }}
-    {{- end }}
+{{- end }}
