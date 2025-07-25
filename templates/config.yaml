@@ -18,11 +18,11 @@ data:
     {{- $currentPort := add $startPort $index }}
     # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
     :{{ $currentPort }} {
-        {{- if $proxy.logging }}
+        {{- if $proxy.loggingEnabled }}
         log {
             output stdout
             level INFO
-            format transform `{ts} {method} {host}{uri} -> {upstream_address} {status} ({duration})`
+            format console
         }
         {{- end }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
