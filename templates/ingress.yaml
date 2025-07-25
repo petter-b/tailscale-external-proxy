@@ -17,7 +17,7 @@ spec:
     - host: {{ $proxy.hostName }}
       http:
         paths:
-          - path:
+          - path: /
             pathType: ImplementationSpecific
             backend:
               service:
