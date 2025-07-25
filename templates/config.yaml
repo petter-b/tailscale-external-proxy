@@ -22,18 +22,7 @@ data:
         log {
             output stdout
             level INFO
-            format filter {
-                wrap console
-                fields {
-                    # Keep the standard request fields
-                    request>method copy method
-                    request>uri    copy uri
-                    status         copy status
-                    duration       copy duration                    
-                    # Add custom fields for better context
-                    "request>host"   "{{ $proxy.hostName }}.{{ $proxy.domain }}"
-                    "upstream_host"  "{{ $proxy.protocol }}://{{ $proxy.ip }}"
-                }
+            format transform `{request>method} {request>host}{request>uri} -> {upstream_address} [{status}] {duration} {error}`
         }
         {{- end }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
