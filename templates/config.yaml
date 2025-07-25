@@ -21,6 +21,7 @@ data:
         {{- if $proxy.logging }}
         log {
             output stdout
+            level INFO
             format append {
                 "Request Host"   "{http.request.host}"
                 "Referer Header" "{http.request.header.Referer}"
