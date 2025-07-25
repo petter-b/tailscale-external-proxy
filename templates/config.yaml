@@ -18,6 +18,17 @@ data:
     {{- $currentPort := add $startPort $index }}
     # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
     :{{ $currentPort }} {
+        {{- if $proxy.logging }}
+        log {
+            output stdout
+            format append {
+                "Request Host"   "{http.request.host}"
+                "Referer Header" "{http.request.header.Referer}"
+                "Upstream Host"  "{http.reverse_proxy.upstream.hostport}"              
+                wrap console
+            }
+        }
+        {{- end }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
             header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
             header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
