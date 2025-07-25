@@ -22,7 +22,7 @@ data:
         log {
             output stdout
             level INFO
-            format transform `{request>method} {request>host}{request>uri} -> {upstream_address} [{status}] {duration} {error}`
+            format console
         }
         {{- end }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
