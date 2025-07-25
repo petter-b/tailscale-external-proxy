@@ -22,12 +22,18 @@ data:
         log {
             output stdout
             level INFO
-            format append {
-                "Request Host"   "{http.request.host}"
-                "Referer Header" "{http.request.header.Referer}"
-                "Upstream Host"  "{http.reverse_proxy.upstream.hostport}"              
+            format filter {
                 wrap console
-            }
+                fields {
+                    # Keep the standard request fields
+                    request>method copy method
+                    request>uri    copy uri
+                    status         copy status
+                    duration       copy duration                    
+                    # Add custom fields for better context
+                    "request>host"   "{{ $proxy.hostName }}.{{ $proxy.domain }}"
+                    "upstream_host"  "{{ $proxy.protocol }}://{{ $proxy.ip }}"
+                }
         }
         {{- end }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
