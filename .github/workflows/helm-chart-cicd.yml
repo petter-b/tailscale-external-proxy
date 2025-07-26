@@ -269,7 +269,7 @@ jobs:
           echo "🚀 Production release ${NEW_VERSION} published successfully"
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       # =================================================================
       # == Post-release notifications and updates
@@ -277,7 +277,7 @@ jobs:
       - name: Create release notes
         if: steps.release_type.outputs.release_type == 'release-patch' || steps.release_type.outputs.release_type == 'release-minor'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           NEW_VERSION=$(yq e '.version' ./Chart.yaml)
           

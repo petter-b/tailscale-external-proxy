@@ -4,12 +4,32 @@ metadata:
   name: {{ .Release.Name }}-caddyfile
 data:
   Caddyfile: |
+    # Health check endpoint
+    :80 {
+        handle /healthz {
+            respond "OK" 200
+        }
+        handle {
+            respond "Not found" 404
+        }
+    }
     {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
     {{- range $index, $proxy := .Values.proxies }}
     {{- $currentPort := add $startPort $index }}
     # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
     :{{ $currentPort }} {
+        {{- if $proxy.loggingEnabled }}
+        log {
+            output stdout
+            level INFO
+            format console
+        }
+        {{- end }}
+        {{- if $proxy.ip }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
+        {{- else }}
+        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }} {
+        {{- end}}
             header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
             header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
             {{- if $proxy.insecureSkipVerify }}
