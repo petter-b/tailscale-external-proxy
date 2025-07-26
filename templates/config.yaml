@@ -25,6 +25,7 @@ data:
             format console
         }
         {{- end }}
+        {{- if $proxy.domain }}
         {{- if $proxy.ip }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
         {{- else }}
@@ -32,11 +33,14 @@ data:
         {{- end}}
             header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
             header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
-            {{- if $proxy.insecureSkipVerify }}
+            {{- if and (eq $proxy.protocol "https") $proxy.insecureSkipVerify }}
             transport http {
                 tls_insecure_skip_verify
             }
             {{- end }}
         }
+        {{- else }}
+        reverse_proxy {{ $proxy.protocol }}://{{ required $proxy.ip "Either ip or domain must be set!" }}
+        {{- end}}
     }
     {{- end }}
