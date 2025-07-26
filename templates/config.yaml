@@ -25,7 +25,11 @@ data:
             format console
         }
         {{- end }}
+        {{- if $proxy.ip }}
         reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
+        {{- esle }}
+        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }} {
+        {{- end}}
             header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
             header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
             {{- if $proxy.insecureSkipVerify }}
