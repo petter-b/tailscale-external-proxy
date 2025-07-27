@@ -13,34 +13,39 @@ data:
             respond "Not found" 404
         }
     }
-    {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
-    {{- range $index, $proxy := .Values.proxies }}
+{{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
+{{- range $index, $proxy := .Values.proxies }}
     {{- $currentPort := add $startPort $index }}
+    {{- if eq $proxy.protocol "https" }}
+        {{- $protocol := "https" }}
+    {{- else }}
+        {{- $protocol := "http"}}
+    {{- end}}
     # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
     :{{ $currentPort }} {
-        {{- if $proxy.loggingEnabled }}
+    {{- if $proxy.loggingEnabled }}
         log {
             output stdout
             level INFO
             format console
         }
-        {{- end }}
-        {{- if $proxy.domain }}
+    {{- end }}
+    {{- if $proxy.domain }}
         {{- if $proxy.ip }}
-        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
+        reverse_proxy {{ $protocol }}://{{ $proxy.ip }} {
         {{- else }}
-        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }} {
+        reverse_proxy {{ $protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }} {
         {{- end}}
             header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
-            header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
-            {{- if and (eq $proxy.protocol "https") $proxy.insecureSkipVerify }}
+            header_up Referer "{{ $protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
+        {{- if and (eq $protocol "https") $proxy.insecureSkipVerify }}
             transport http {
                 tls_insecure_skip_verify
             }
-            {{- end }}
+        {{- end }}
         }
-        {{- else }}
-        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }}
-        {{- end}}
+    {{- else }}
+        reverse_proxy {{ $protocol }}://{{ $proxy.ip }}
+    {{- end}}
     }
-    {{- end }}
+{{- end }}
