@@ -32,7 +32,7 @@ spec:
             {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
             {{- range $index, $proxy := .Values.proxies }}
             {{- $currentPort := add $startPort $index }}
-            - name: {{ $proxy.hostName }}
+            - name: {{ $proxy.hostName | trunc 15}}
               containerPort: {{ $currentPort }}
               protocol: TCP
             {{- end }}

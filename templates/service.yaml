@@ -12,7 +12,7 @@ spec:
     - port: {{ $currentPort }}
       targetPort: {{ $currentPort }}
       protocol: TCP
-      name: {{ $proxy.hostName }}
+      name: {{ $proxy.hostName | trunc 15 }}
     {{- end }}
   selector:
     {{- include "tailscale-external-proxy.selectorLabels" . | nindent 4 }}
