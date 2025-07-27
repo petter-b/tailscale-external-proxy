@@ -28,6 +28,8 @@
   
         - name: Setup Helm
           uses: azure/setup-helm@v3
+          with:
+            token: ${{ github.token }}
   
         - name: Setup kubectl (for validation)
           uses: azure/setup-kubectl@v3
@@ -211,14 +213,14 @@
             # Configure git
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-  
+
             # Get current version
             CURRENT_VERSION=$(yq e '.version' ./Chart.yaml)
             
             # Handle first release case - check if any version tags exist
             LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || echo "")
             
-            if [[ -z "$LATEST_TAG" ]] || [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
+            if [[ -z "$LATEST_TAG" ]] && [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
               echo "🎉 First release detected"
               if [[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]]; then
                 NEW_VERSION="0.1.0"
@@ -226,7 +228,7 @@
                 NEW_VERSION="0.0.1"
               fi
             else
-              # Normal semver bump
+              # Normal semver bump from current version
               echo "📈 Bumping existing version: $CURRENT_VERSION"
               if [[ "${{ steps.release_type.outputs.release_type }}" == "release-patch" ]]; then
                 NEW_VERSION=$(npx semver -i patch $CURRENT_VERSION)
@@ -250,13 +252,30 @@
             
             # Commit the version bump (only if this is a PR)
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              # Make sure we're on the PR branch properly
+              git checkout ${{ github.head_ref }}
+                            
               git add ./Chart.yaml
               git commit -m "chore: Release version ${NEW_VERSION}"
               
-              # Merge the PR (requires admin rights on the repo for the action)
-              gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
+              # Push the commit to the PR branch first
+              git push origin ${{ github.head_ref }}
               
-              # Push the commit and tag
+              # Try to merge the PR - if auto-merge fails, continue anyway
+              echo "Attempting to merge PR..."
+              if ! gh pr merge ${{ github.event.pull_request.number }} --squash --delete-branch; then
+                echo "Auto-merge failed, but continuing with manual tag creation..."
+                echo "Please manually merge the PR and re-run the workflow"
+                exit 1
+              fi
+              
+              # Now switch to main and pull the merged changes
+              git checkout main
+              git pull origin main
+            else
+              # For workflow_dispatch, commit directly to main
+              git add ./Chart.yaml
+              git commit -m "chore: Release version ${NEW_VERSION}"
               git push origin main
             fi
             
@@ -270,7 +289,7 @@
             
             echo "🚀 Production release ${NEW_VERSION} published successfully"
             echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-  
+
         # =================================================================
         # == Post-release notifications and updates
         # =================================================================
