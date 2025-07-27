@@ -28,6 +28,8 @@
   
         - name: Setup Helm
           uses: azure/setup-helm@v3
+          with:
+            token: ${{ github.token }}
   
         - name: Setup kubectl (for validation)
           uses: azure/setup-kubectl@v3
