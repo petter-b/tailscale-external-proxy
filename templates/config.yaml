@@ -4,19 +4,47 @@ metadata:
   name: {{ .Release.Name }}-caddyfile
 data:
   Caddyfile: |
-    {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
-    {{- range $index, $proxy := .Values.proxies }}
+    # Health check endpoint
+    :80 {
+        handle /healthz {
+            respond "OK" 200
+        }
+        handle {
+            respond "Not found" 404
+        }
+    }
+{{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
+{{- range $index, $proxy := .Values.proxies }}
     {{- $currentPort := add $startPort $index }}
+    {{- $protocol := "http"}}
+    {{- if eq $proxy.protocol "https" }}
+        {{- $protocol := "https" }}
+    {{- end}}
     # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
     :{{ $currentPort }} {
-        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }} {
+    {{- if $proxy.loggingEnabled }}
+        log {
+            output stdout
+            level INFO
+            format console
+        }
+    {{- end }}
+    {{- if $proxy.domain }}
+        {{- if $proxy.ip }}
+        reverse_proxy {{ $protocol }}://{{ $proxy.ip }} {
+        {{- else }}
+        reverse_proxy {{ $protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }} {
+        {{- end}}
             header_up Host "{{ $proxy.hostName }}.{{ $proxy.domain }}"
-            header_up Referer "{{ $proxy.protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
-            {{- if $proxy.insecureSkipVerify }}
+            header_up Referer "{{ $protocol }}://{{ $proxy.hostName }}.{{ $proxy.domain }}"
+        {{- if and (eq $protocol "https") $proxy.insecureSkipVerify }}
             transport http {
                 tls_insecure_skip_verify
             }
-            {{- end }}
+        {{- end }}
         }
+    {{- else }}
+        reverse_proxy {{ $protocol }}://{{ $proxy.ip }}
+    {{- end}}
     }
-    {{- end }}
+{{- end }}

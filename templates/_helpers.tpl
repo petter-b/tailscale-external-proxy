@@ -3,7 +3,7 @@ Define a constant for the starting port.
 */}}
 {{- define "tailscale-external-proxy.startPort" -}}
 8080
-{{- end -}}
+{{- end }}
 
 {{/*
 Expand the name of the chart.
