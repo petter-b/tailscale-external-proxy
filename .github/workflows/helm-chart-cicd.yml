@@ -106,7 +106,7 @@
           with:
             # Fetch all history to get previous tags for versioning
             fetch-depth: 0
-            token: ${{ gitub.token }} 
+            token: ${{ github.token }} 
   
         - name: Setup Helm
           uses: azure/setup-helm@v3
