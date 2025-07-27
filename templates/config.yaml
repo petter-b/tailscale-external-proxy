@@ -16,10 +16,9 @@ data:
 {{- $startPort := include "tailscale-external-proxy.startPort" . | int -}}
 {{- range $index, $proxy := .Values.proxies }}
     {{- $currentPort := add $startPort $index }}
+    {{- $protocol := "http"}}
     {{- if eq $proxy.protocol "https" }}
         {{- $protocol := "https" }}
-    {{- else }}
-        {{- $protocol := "http"}}
     {{- end}}
     # Proxy for {{ $proxy.hostName }} listening on port {{ $currentPort }}
     :{{ $currentPort }} {
