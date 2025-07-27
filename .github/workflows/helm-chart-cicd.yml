@@ -250,14 +250,20 @@
             
             # Commit the version bump (only if this is a PR)
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              # Make sure we're on the PR branch properly
+              git checkout ${{ github.head_ref }}
               git add ./Chart.yaml
               git commit -m "chore: Release version ${NEW_VERSION}"
+              
+              # Push the commit to the PR branch first
+              git push origin ${{ github.head_ref }}
               
               # Merge the PR (requires admin rights on the repo for the action)
               gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
               
-              # Push the commit and tag
-              git push origin main
+              # Now switch to main and pull the merged changes
+              git checkout main
+              git pull origin main
             fi
             
             # Create and push tag
