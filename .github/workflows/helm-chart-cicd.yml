@@ -254,10 +254,7 @@
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
               # Make sure we're on the PR branch properly
               git checkout ${{ github.head_ref }}
-              
-              # Reset any unintended changes (like LICENSE file)
-              git checkout -- LICENSE || true
-              
+                            
               git add ./Chart.yaml
               git commit -m "chore: Release version ${NEW_VERSION}"
               
