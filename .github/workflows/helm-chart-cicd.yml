@@ -212,26 +212,19 @@
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
 
-            # Get current version from the chart
+            # Get current version
             CURRENT_VERSION=$(yq e '.version' ./Chart.yaml)
             
-            # Determine the new version based on release type
+            # Determine the new version
             LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || echo "")
             
             if [[ -z "$LATEST_TAG" ]] || [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
               echo "🎉 First release detected"
-              if [[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]]; then
-                NEW_VERSION="0.1.0"
-              else
-                NEW_VERSION="0.0.1"
-              fi
+              NEW_VERSION=$([[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]] && echo "0.1.0" || echo "0.0.1")
             else
               echo "📈 Bumping existing version: $CURRENT_VERSION"
-              if [[ "${{ steps.release_type.outputs.release_type }}" == "release-patch" ]]; then
-                NEW_VERSION=$(npx semver -i patch $CURRENT_VERSION)
-              elif [[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]]; then
-                NEW_VERSION=$(npx semver -i minor $CURRENT_VERSION)
-              fi
+              BUMP_TYPE=$([[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]] && echo "minor" || echo "patch")
+              NEW_VERSION=$(npx semver -i $BUMP_TYPE $CURRENT_VERSION)
             fi
             
             echo "Version: ${CURRENT_VERSION} → ${NEW_VERSION}"
@@ -247,48 +240,49 @@
 
             # --- Git Operations ---
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              # For a PR, we commit to the PR branch, merge it, then tag main
+              # 1. Switch from detached HEAD to the actual PR branch
               BRANCH_NAME="${{ github.head_ref }}"
               echo "Switching to PR branch: ${BRANCH_NAME}"
               git checkout "${BRANCH_NAME}"
               
-              # Commit and push the version bump to the PR branch
+              # 2. Commit and push the version bump to the PR branch to update it
               git add ./Chart.yaml
               git commit -m "chore(release): Bump version to ${NEW_VERSION}"
-              echo "Pushing version bump to ${BRANCH_NAME}"
+              echo "Pushing version bump to ${BRANCH_NAME} to update the PR..."
               git push origin "${BRANCH_NAME}"
               
-              # Merge the updated PR
-              echo "Merging PR #${{ github.event.pull_request.number }}"
+              # 3. Merge the updated PR
+              echo "Merging PR #${{ github.event.pull_request.number }}..."
               gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
               
-              # Switch to main to tag the new commit
-              echo "Switching to main branch for tagging"
+              # 4. Switch to the main branch and pull the newly merged changes
+              echo "Switching to main branch for tagging..."
               git checkout main
               git pull origin main
 
-            else
-              # For a manual dispatch, we are already on main (or should be)
-              # We just need to commit and push directly to main
+            else # This block handles 'workflow_dispatch'
+              # For a manual dispatch, commit directly to main
+              echo "Running on manual dispatch. Committing directly to main."
               git checkout main
               git add ./Chart.yaml
               git commit -m "chore(release): Bump version to ${NEW_VERSION}"
-              echo "Pushing version bump directly to main"
+              echo "Pushing version bump directly to main..."
               git push origin main
             fi
             
-            # Create and push tag on the latest commit on main
-            echo "Creating and pushing tag v${NEW_VERSION}"
+            # 5. Create and push the tag from the up-to-date main branch
+            echo "Creating and pushing tag v${NEW_VERSION}..."
             git tag "v${NEW_VERSION}"
             git push origin "v${NEW_VERSION}"
             
-            # Package and push the chart to the registry
+            # 6. Package and push the chart to the registry
+            echo "Packaging and pushing Helm chart..."
             helm package .
             helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/charts/
             
             echo "🚀 Production release ${NEW_VERSION} published successfully"
             echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-  
+    
         # =================================================================
         # == Post-release notifications and updates
         # =================================================================
