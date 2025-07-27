@@ -40,7 +40,7 @@ data:
             {{- end }}
         }
         {{- else }}
-        reverse_proxy {{ $proxy.protocol }}://{{ required $proxy.ip "Either ip or domain must be set!" }}
+        reverse_proxy {{ $proxy.protocol }}://{{ $proxy.ip }}
         {{- end}}
     }
     {{- end }}
