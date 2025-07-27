@@ -211,11 +211,11 @@
             # Configure git
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-  
-            # Get current version
+
+            # Get current version from the chart
             CURRENT_VERSION=$(yq e '.version' ./Chart.yaml)
             
-            # Handle first release case - check if any version tags exist
+            # Determine the new version based on release type
             LATEST_TAG=$(git describe --tags --abbrev=0 --match="v*" 2>/dev/null || echo "")
             
             if [[ -z "$LATEST_TAG" ]] || [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
@@ -226,7 +226,6 @@
                 NEW_VERSION="0.0.1"
               fi
             else
-              # Normal semver bump
               echo "📈 Bumping existing version: $CURRENT_VERSION"
               if [[ "${{ steps.release_type.outputs.release_type }}" == "release-patch" ]]; then
                 NEW_VERSION=$(npx semver -i patch $CURRENT_VERSION)
@@ -240,31 +239,50 @@
             # Update Chart.yaml with the new version
             yq e -i ".version = \"$NEW_VERSION\"" ./Chart.yaml
             
-            # Run final validation with new version
+            # Run final validation with the new version
             helm lint .
             helm template test . --debug > /dev/null
-            
-            # Validate Kubernetes manifests
             echo "Validating Kubernetes manifests with kubeconform..."
             helm template test . | kubeconform -strict -summary
-            
-            # Commit the version bump (only if this is a PR)
+
+            # --- Git Operations ---
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-              git add ./Chart.yaml
-              git commit -m "chore: Release version ${NEW_VERSION}"
+              # For a PR, we commit to the PR branch, merge it, then tag main
+              BRANCH_NAME="${{ github.head_ref }}"
+              echo "Switching to PR branch: ${BRANCH_NAME}"
+              git checkout "${BRANCH_NAME}"
               
-              # Merge the PR (requires admin rights on the repo for the action)
+              # Commit and push the version bump to the PR branch
+              git add ./Chart.yaml
+              git commit -m "chore(release): Bump version to ${NEW_VERSION}"
+              echo "Pushing version bump to ${BRANCH_NAME}"
+              git push origin "${BRANCH_NAME}"
+              
+              # Merge the updated PR
+              echo "Merging PR #${{ github.event.pull_request.number }}"
               gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
               
-              # Push the commit and tag
+              # Switch to main to tag the new commit
+              echo "Switching to main branch for tagging"
+              git checkout main
+              git pull origin main
+
+            else
+              # For a manual dispatch, we are already on main (or should be)
+              # We just need to commit and push directly to main
+              git checkout main
+              git add ./Chart.yaml
+              git commit -m "chore(release): Bump version to ${NEW_VERSION}"
+              echo "Pushing version bump directly to main"
               git push origin main
             fi
             
-            # Create and push tag
+            # Create and push tag on the latest commit on main
+            echo "Creating and pushing tag v${NEW_VERSION}"
             git tag "v${NEW_VERSION}"
             git push origin "v${NEW_VERSION}"
             
-            # Package and push the chart
+            # Package and push the chart to the registry
             helm package .
             helm push *.tgz oci://ghcr.io/${{ github.repository_owner }}/charts/
             
