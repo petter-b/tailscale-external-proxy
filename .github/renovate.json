@@ -6,7 +6,19 @@
   "enabledManagers": [
     "helmv3",
     "helm-values",
-    "github-actions"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^Chart\\.yaml$"
+      ],
+      "matchStrings": [
+        "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
+      ],
+      "datasourceTemplate": "{{datasource}}",
+      "depNameTemplate": "{{depName}}"
+    }
   ],
   "packageRules": [
     {
@@ -14,8 +26,8 @@
       "matchDatasources": [
         "docker"
       ],
-      "matchFileNames": [
-        "./Chart.yaml"
+      "matchPackageNames": [
+        "caddy"
       ],
       "automerge": false,
       "labels": [
@@ -55,8 +67,8 @@
       ],
       "automerge": true,
       "automergeType": "branch",
-      "matchPackageNames": [
-        "!/caddy/"
+      "excludePackageNames": [
+        "caddy"
       ]
     }
   ]
