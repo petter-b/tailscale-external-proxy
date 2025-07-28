@@ -21,6 +21,18 @@ on:
         - release-major
 
 jobs:
+  auto-approve:
+    runs-on: ubuntu-latest
+    # Only run on PRs created by the repository owner
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == github.repository_owner
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Auto-approve PR
+        run: gh pr review ${{ github.event.pull_request.number }} --approve
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          
   test:
     runs-on: ubuntu-latest
     # Run tests on ALL PRs and manual dispatches
