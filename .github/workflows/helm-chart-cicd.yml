@@ -92,6 +92,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
+    environment: production 
     needs: test  # Only run release if tests pass
     # This job only runs if one of the release labels is applied OR manual dispatch with release type
     if: |
