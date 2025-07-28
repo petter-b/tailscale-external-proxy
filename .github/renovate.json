@@ -1,11 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    ":dependencyDashboard",
-    ":semanticCommits",
-    ":separateMajorReleases",
-    "docker:enableMajor"
+    "config:best-practices"
   ],
   "regexManagers": [
     {
@@ -43,13 +39,5 @@
       "automerge": true,
       "automergeType": "branch"
     }
-  ],
-  "schedule": ["every weekend"],
-  "prConcurrentLimit": 3,
-  "labels": ["dependencies"],
-  "assignees": ["petter-b"],
-  "rangeStrategy": "bump",
-  "commitMessagePrefix": "chore(deps):",
-  "prCreation": "not-pending",
-  "dependencyDashboard": true
+  ]
 }
