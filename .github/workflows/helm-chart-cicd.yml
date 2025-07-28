@@ -139,7 +139,7 @@ jobs:
       - name: Setup Node.js (for semver)
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Setup yq
         uses: mikefarah/yq@v4.44.1
