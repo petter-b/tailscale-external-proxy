@@ -53,9 +53,11 @@
         "pin",
         "digest"
       ],
-      "excludePackagePatterns": ["caddy"],
       "automerge": true,
-      "automergeType": "branch"
+      "automergeType": "branch",
+      "matchPackageNames": [
+        "!/caddy/"
+      ]
     }
   ]
 }
