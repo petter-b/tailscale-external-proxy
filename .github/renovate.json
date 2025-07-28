@@ -1,10 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices",
-    ":helmv3",
-    ":helm-values",
-    ":kubernetes"
+    "config:best-practices"
   ],
   "customManagers": [
     {
@@ -21,7 +18,7 @@
   ],
   "packageRules": [
     {
-      "description": "Do not automerge Caddy image updates in Chart.yaml",
+      "description": "Caddy image updates in Chart.yaml",
       "matchDatasources": [
         "docker"
       ],
