@@ -3,36 +3,7 @@
   "extends": [
     "config:best-practices"
   ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^Chart\\.yaml$/"
-      ],
-      "matchStrings": [
-        "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
-      ],
-      "datasourceTemplate": "{{datasource}}",
-      "depNameTemplate": "{{depName}}"
-    }
-  ],
   "packageRules": [
-    {
-      "description": "Caddy image updates in Chart.yaml",
-      "matchDatasources": [
-        "docker"
-      ],
-      "matchFileNames": [
-        "./Chart.yaml"
-      ],
-      "automerge": true,
-      "pinDigest": {
-        "enabled": false
-      },
-      "labels": [
-        "release-patch"
-      ]
-    },
     {
       "description": "GitHub Actions - group and auto-merge patch updates",
       "matchManagers": [
