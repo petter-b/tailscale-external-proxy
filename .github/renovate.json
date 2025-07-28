@@ -3,21 +3,14 @@
   "extends": [
     "config:best-practices"
   ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/./Chart\\.yaml$/"
-      ],
-      "matchStrings": [
-        "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
-      ],
-      "datasourceTemplate": "{{datasource}}",
-      "depNameTemplate": "{{depName}}"
-    }
+  "enabledManagers": [
+    "helmv3",
+    "helm-values",
+    "github-actions"
   ],
   "packageRules": [
     {
+      "description": "Do not automerge Caddy image updates in Chart.yaml",
       "matchDatasources": [
         "docker"
       ],
@@ -53,13 +46,14 @@
       "automerge": false
     },
     {
-      "description": "Auto merge minor and patch updates",
+      "description": "Auto merge other minor and patch updates",
       "matchUpdateTypes": [
         "minor",
         "patch",
         "pin",
         "digest"
       ],
+      "excludePackagePatterns": ["caddy"],
       "automerge": true,
       "automergeType": "branch"
     }
