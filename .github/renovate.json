@@ -5,13 +5,13 @@
   ],
   "enabledManagers": [
     "helmv3",
-    "helm-values",
+    "helm-values"
   ],
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Chart\\.yaml$"
+      "managerFilePatterns": [
+        "/^Chart\\.yaml$/"
       ],
       "matchStrings": [
         "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
@@ -67,8 +67,8 @@
       ],
       "automerge": true,
       "automergeType": "branch",
-      "excludePackageNames": [
-        "caddy"
+      "matchPackageNames": [
+        "!caddy"
       ]
     }
   ]
