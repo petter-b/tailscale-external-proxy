@@ -6,8 +6,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^Chart\\.yaml$"
+      "managerFilePatterns": [
+        "/^Chart\\.yaml$/"
       ],
       "matchStrings": [
         "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
@@ -61,11 +61,11 @@
         "pin",
         "digest"
       ],
-      "excludePackagePatterns": [
-        "^caddy$"
-      ],
       "automerge": true,
-      "automergeType": "branch"
+      "automergeType": "branch",
+      "matchPackageNames": [
+        "!/^caddy$/"
+      ]
     }
   ]
 }
