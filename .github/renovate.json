@@ -1,7 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices"
+    "config:best-practices",
+    ":helmv3",
+    ":helm-values",
+    ":kubernetes"
   ],
   "customManagers": [
     {
@@ -25,7 +28,8 @@
       "matchFileNames": [
         "./Chart.yaml"
       ],
-      "automerge": false,
+      "automerge": true,
+      "pinDigest": false,
       "labels": [
         "release-patch"
       ]
