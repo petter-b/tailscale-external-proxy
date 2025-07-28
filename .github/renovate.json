@@ -13,7 +13,10 @@
         "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
       ],
       "datasourceTemplate": "{{datasource}}",
-      "depNameTemplate": "{{depName}}"
+      "depNameTemplate": "{{depName}}",
+      "pinDigest": {
+        "enabled": false
+      },
     }
   ],
   "packageRules": [
@@ -34,13 +37,14 @@
       ]
     },
     {
-      "description": "GitHub Actions - group and auto-merge patch updates",
+      "description": "GitHub Actions - group and auto-merge minor and patch updates",
       "matchManagers": [
         "github-actions"
       ],
       "groupName": "GitHub Actions",
       "automerge": true,
       "matchUpdateTypes": [
+        "minor",
         "patch",
         "pin",
         "digest"
