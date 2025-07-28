@@ -3,15 +3,11 @@
   "extends": [
     "config:best-practices"
   ],
-  "enabledManagers": [
-    "helmv3",
-    "helm-values"
-  ],
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^Chart\\.yaml$/"
+      "fileMatch": [
+        "^Chart\\.yaml$"
       ],
       "matchStrings": [
         "appVersion:\\s*\"?(?<currentValue>.*?)\"?\\s*#\\s*renovate:\\s*datasource=(?<datasource>.*?)\\s+depName=(?<depName>.*?)\\s*$"
@@ -26,8 +22,8 @@
       "matchDatasources": [
         "docker"
       ],
-      "matchPackageNames": [
-        "caddy"
+      "matchFileNames": [
+        "./Chart.yaml"
       ],
       "automerge": false,
       "labels": [
@@ -65,11 +61,11 @@
         "pin",
         "digest"
       ],
+      "excludePackagePatterns": [
+        "^caddy$"
+      ],
       "automerge": true,
-      "automergeType": "branch",
-      "matchPackageNames": [
-        "!caddy"
-      ]
+      "automergeType": "branch"
     }
   ]
 }
