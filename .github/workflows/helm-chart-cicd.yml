@@ -1,4 +1,7 @@
   name: Helm Chart CI/CD
+
+  permissions:
+    contents: read  # Default to minimal permissions
   
   on:
     pull_request:
@@ -15,6 +18,7 @@
           - release-candidate
           - release-patch
           - release-minor
+          - release-major
   
   jobs:
     test:
@@ -94,6 +98,7 @@
         contains(github.event.label.name, 'release-candidate') ||
         contains(github.event.label.name, 'release-patch') ||
         contains(github.event.label.name, 'release-minor') ||
+        contains(github.event.label.name, 'release-major') ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.release_type != 'none')
   
       # Grant permissions for pushing to GHCR and committing to the Flux repo
@@ -171,6 +176,7 @@
         # == Release Candidate Logic
         # =================================================================
         - name: Build and Push Release Candidate
+          id: build_rc
           if: steps.release_type.outputs.release_type == 'release-candidate'
           run: |
             # Get the base version from Chart.yaml
@@ -208,6 +214,7 @@
         # == Production Release Logic
         # =================================================================
         - name: Build and Push Production Release
+          id: build_prod
           if: steps.release_type.outputs.release_type == 'release-patch' || steps.release_type.outputs.release_type == 'release-minor'
           run: |
             # Configure git
@@ -234,6 +241,8 @@
                 NEW_VERSION=$(npx semver -i patch $CURRENT_VERSION)
               elif [[ "${{ steps.release_type.outputs.release_type }}" == "release-minor" ]]; then
                 NEW_VERSION=$(npx semver -i minor $CURRENT_VERSION)
+              elif [[ "${{ steps.release_type.outputs.release_type }}" == "release-major" ]]; then
+                NEW_VERSION=$(npx semver -i major $CURRENT_VERSION)
               fi
             fi
             
@@ -264,8 +273,15 @@
               # Try to merge the PR - if auto-merge fails, continue anyway
               echo "Attempting to merge PR..."
               if ! gh pr merge ${{ github.event.pull_request.number }} --squash --delete-branch; then
-                echo "Auto-merge failed, but continuing with manual tag creation..."
-                echo "Please manually merge the PR and re-run the workflow"
+                  echo "❌ Auto-merge failed. This usually means:"
+                  echo "1. Auto-merge is not enabled in repository settings"
+                  echo "2. Branch protection rules prevent auto-merge"
+                  echo "3. The PR has conflicts or failed checks"
+                  echo ""
+                  echo "Please either:"
+                  echo "- Enable auto-merge in Settings > General > Pull Requests"
+                  echo "- Manually merge PR #${{ github.event.pull_request.number }}"
+                  echo "- Re-run this workflow after manual merge"
                 exit 1
               fi
               
@@ -294,7 +310,10 @@
         # == Post-release notifications and updates
         # =================================================================
         - name: Create release notes
-          if: steps.release_type.outputs.release_type == 'release-patch' || steps.release_type.outputs.release_type == 'release-minor'
+          if: |
+            steps.release_type.outputs.release_type == 'release-patch' || 
+            steps.release_type.outputs.release_type == 'release-minor' ||
+            steps.release_type.outputs.release_type == 'release-major'
           run: |
             NEW_VERSION=$(yq e '.version' ./Chart.yaml)
             
