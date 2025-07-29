@@ -1,7 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":configMigration",
+    ":pinDevDependencies",
+    "abandonments:recommended",
+    ":approveMajorUpdates",
+    ":automergeMinor",
+    ":automergeRequireAllStatusChecks",
+    ":enableVulnerabilityAlerts",
+    ":ignoreUnstable"
   ],
   "customManagers": [
     {
@@ -25,7 +34,7 @@
       "automerge": false
     },
     {
-      "description": "Disable digest pinning/updates for Caddy",
+      "description": "Caddy image updates (minor/patch) in Chart.yaml",
       "matchDatasources": [
         "docker"
       ],
@@ -33,29 +42,42 @@
         "./Chart.yaml"
       ],
       "matchUpdateTypes": [
-        "digest",
-        "pinDigest"
+        "minor",
+        "patch"
       ],
-      "enabled": false
+      "automerge": true,
+      "pinDigest": {
+        "enabled": false
+      },
+      "labels": [
+        "release-patch"
+      ]
     },
     {
-      "description": "Caddy image updates in Chart.yaml",
+      "description": "Caddy image updates (major) in Chart.yaml",
       "matchDatasources": [
         "docker"
       ],
       "matchFileNames": [
         "./Chart.yaml"
       ],
-      "automerge": true,
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true,
+      "automerge": false,
       "pinDigest": {
         "enabled": false
-      },
-      "digest": {
-        "enabled": false
-      },
-      "labels": [
-        "release-patch"
-      ]
+      }
+    },
+    {
+      "description": "Pin all other docker images to SHA digest",
+      "matchDatasources": [
+        "docker"
+      ],
+      "pinDigest": {
+        "enabled": true
+      }
     }
   ]
 }
