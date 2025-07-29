@@ -32,9 +32,6 @@
       "matchFileNames": [
         "./Chart.yaml"
       ],
-      "matchPackageNames": [
-        "caddy"
-      ],
       "matchUpdateTypes": [
         "digest",
         "pinDigest"
