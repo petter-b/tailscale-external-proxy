@@ -25,6 +25,23 @@
       "automerge": false
     },
     {
+      "description": "Disable digest pinning/updates for Caddy",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchFileNames": [
+        "./Chart.yaml"
+      ],
+      "matchPackageNames": [
+        "caddy"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
+      "enabled": false
+    },
+    {
       "description": "Caddy image updates in Chart.yaml",
       "matchDatasources": [
         "docker"
