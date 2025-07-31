@@ -27,13 +27,6 @@
   ],
   "packageRules": [
     {
-      "description": "Separate major updates for review",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "automerge": false
-    },
-    {
       "description": "Caddy image updates (minor/patch) in Chart.yaml",
       "matchDatasources": [
         "docker"
