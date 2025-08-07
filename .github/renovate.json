@@ -12,6 +12,7 @@
     ":enableVulnerabilityAlerts",
     ":ignoreUnstable"
   ],
+  "minimumReleaseAge": "14 days",
   "customManagers": [
     {
       "customType": "regex",
